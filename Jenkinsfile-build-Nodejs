@@ -1,0 +1,47 @@
+pipeline {
+
+  agent any
+    tools {
+      nodejs 'NodeJS 12.14.1'
+    }
+  environment {
+    WEBBUILD = '$WORKSPACE/app/renderer/build/web'
+    NOCCBUILD = '$WORKSPACE/app/renderer/build/nc'
+  }
+  stages {
+
+    stage('Validation') {
+      steps {
+        checkout scm
+      }
+    }
+    stage('get NPM packages') {
+      steps {
+        sh 'cd app/renderer && npm install'
+          sh 'npm run clear'
+      }
+    }
+    stage('Test') {
+      steps {
+        sh 'cd app/renderer && npm run ts && npm run lint'
+      }
+    }
+    stage('Build') {
+      steps {
+        sh 'cd app/renderer && npm run build-jenkins'
+      }
+    }
+    stage('Deploy') {
+      when {
+        branch 'master'
+      }
+      steps {
+        sshagent(['key']) {
+          sh 'rsync -avzu --delete --progress -h $WORKSPACE/app/renderer/build/web/ root@ip:/var/www/dir/public_html'
+            sh 'rsync -avzu --delete --progress -h $WORKSPACE/app/renderer/build/nocc/ root@ip:/var/www/dir/nc'
+        }
+      }
+    }
+  }
+}
+

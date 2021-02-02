@@ -1,0 +1,58 @@
+def notifySlack(String buildStatus = 'STARTED') {
+    // Build status of null means success.
+    buildStatus = buildStatus ?: 'SUCCESS'
+
+    def color
+
+    if (buildStatus == 'STARTED') {
+        color = '#D4DADF'
+    } else if (buildStatus == 'SUCCESS') {
+        color = '#BDFFC3'
+    } else if (buildStatus == 'UNSTABLE') {
+        color = '#FFFE89'
+    } else {
+        color = '#FF9FA1'
+    }
+
+    def msg = "${buildStatus}: `${env.JOB_NAME}` #${env.BUILD_NUMBER}:\n${env.BUILD_URL}"
+
+    slackSend(color: color, message: msg)
+}
+
+timestamps {
+
+    node () {
+        tool name: 'Java 11 Zulu', type: 'jdk'
+        tool name: 'Maven3', type: 'maven'
+        try {
+            notifySlack()
+            stage ('Checkout') {
+                checkout([$class: 'GitSCM', branches: [[name: '*/develop']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '', url: 'git@bitbucket.org:workspce/reponme.git']]])
+            }
+            stage ('maa-maestro-services - Build') {
+
+
+                // Maven build step
+
+                if(isUnix()) {
+                    sh "mvn -f pom.xml -Dmaven.wagon.http.ssl.insecure=true -Dmaven.wagon.http.ssl.allowall=true -DskipIntegrationTests=true -U -e clean org.jacoco:jacoco-maven-plugin:prepare-agent deploy -P jenkins-ci "
+                } else {
+                    bat "mvn -f pom.xml -Dmaven.wagon.http.ssl.insecure=true -Dmaven.wagon.http.ssl.allowall=true -DskipIntegrationTests=true -U -e clean org.jacoco:jacoco-maven-plugin:prepare-agent deploy -P jenkins-ci "
+                }
+  }
+            stage ('Post build actions') {
+
+                step([$class: 'Mailer', notifyEveryUnstableBuild: true, recipients: 'adminemail', sendToIndividuals: false])
+
+            }
+
+        } catch (e) {
+            currentBuild.result = 'FAILURE'
+            throw e
+        } finally {
+            notifySlack(currentBuild.result)
+        }
+
+    }
+}
+

@@ -1,0 +1,33 @@
+pipeline {
+  agent {
+    docker {
+      image 'python:3.9'
+      args '-u root'
+    }
+  }
+  stages {
+//   stage('debug') {
+//     steps {
+//       sh "echo $USER"
+//       sh 'mkdir -p /.cache/pip'
+//       sh 'ls -l /.cache/'
+//     }
+//   }
+    stage('Setup') { // Install any dependencies you need to perform testing
+      steps {
+        script {
+          sh 'pip install -r requirements.txt'
+
+        }
+      }
+    }
+
+    stage('build') {
+      steps {
+        sh 'python main.py'
+
+      }
+    }
+  }
+}
+

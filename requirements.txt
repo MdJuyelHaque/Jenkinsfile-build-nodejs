@@ -1,0 +1,6 @@
+requests~=2.24.0
+boto3~=1.16.47
+cryptography
+jpath~=1.6
+paramiko~=2.7.2
+

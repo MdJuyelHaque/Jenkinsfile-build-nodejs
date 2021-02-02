@@ -1,0 +1,14 @@
+timestamps {
+
+node () {
+
+        stage ('admin-qa-deploy - Checkout') {
+         checkout([$class: 'GitSCM', branches: [[name: 'origin/feature/qa-release']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '', url: 'git@bitbucket.org:workspace/reponame.git']]])
+        }
+        stage ('admin-qa-deploy - Post build actions') {
+                step([$class: 'Mailer', notifyEveryUnstableBuild: true, recipients: 'email', sendToIndividuals: false])
+
+        }
+}
+}
+

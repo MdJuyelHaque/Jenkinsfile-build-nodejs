@@ -1,0 +1,53 @@
+def notifySlack(String buildStatus = 'STARTED') {
+    // Build status of null means success.
+    buildStatus = buildStatus ?: 'SUCCESS'
+
+    def color
+
+    if (buildStatus == 'STARTED') {
+        color = '#D4DADF'
+    } else if (buildStatus == 'SUCCESS') {
+        color = '#BDFFC3'
+    } else if (buildStatus == 'UNSTABLE') {
+        color = '#FFFE89'
+    } else {
+        color = '#FF9FA1'
+    }
+
+    def msg = "${buildStatus}: `${env.JOB_NAME}` #${env.BUILD_NUMBER}:\n${env.BUILD_URL}"
+
+    slackSend(color: color, message: msg)
+}
+
+timestamps {
+
+    node () {
+        try{
+            tool name: 'Maven3', type: 'maven'
+        stage('admin - Checkout') {
+            checkout([$class: 'GitSCM', branches: [[name: '*/develop']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '', url: 'git@bitbucket.org:workspace/reponame.git']]])
+        }
+        stage('admin - Build') {
+            // Maven build step
+            withMaven(maven: '(Default)') {
+                if (isUnix()) {
+                    sh "mvn -f pom.xml -Dmaven.wagon.http.ssl.insecure=true -Dmaven.wagon.http.ssl.allowall=true -DskipIntegrationTests=true -e clean deploy "
+                } else {
+                    bat "mvn -f pom.xml -Dmaven.wagon.http.ssl.insecure=true -Dmaven.wagon.http.ssl.allowall=true -DskipIntegrationTests=true -e clean deploy "
+                }
+            }
+        }
+        stage('admin - Post build actions') {
+
+            // Mailer notification
+            step([$class: 'Mailer', notifyEveryUnstableBuild: true, recipients: 'email', sendToIndividuals: false])
+
+        }
+  }catch (e) {
+            currentBuild.result = 'FAILURE'
+            throw e
+        } finally {
+            notifySlack(currentBuild.result)
+        }
+    }
+

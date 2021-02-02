@@ -1,0 +1,15 @@
+timestamps {
+
+node () {
+
+        stage ('release - Build') {
+sh """
+/var/local/jenkins-create-release.sh $WORKSPACE 'git@bitbucket.org:workspce/reponame.git' $SOURCE $TARGET $VERSION $SNAPSHOT_VERSION
+ """            // Shell build step
+sh """
+/var/local/jenkins-create-release.sh $WORKSPACE 'git@bitbucket.org:workspace/reponame.git' $SOURCE $TARGET $VERSION $SNAPSHOT_VERSION
+ """
+        }
+}
+}
+

@@ -1,0 +1,27 @@
+timestamps {
+
+node () {
+
+        stage (' Checkout') {
+         checkout([$class: 'GitSCM', branches: [[name: '*/release']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '', url: 'git@bitbucket.org:workspace/reponame.git']]])
+        }
+        stage ('release - Build') {
+
+withEnv(["JAVA_HOME=${ tool '"+JDK+"' }", "PATH=${env.JAVA_HOME}/bin"]) {
+                // Maven build step
+        withMaven(jdk: 'Java 11 Zulu', maven: '(Default)') {
+                        if(isUnix()) {
+                                sh "mvn -f pom.xml -Dmaven.wagon.http.ssl.insecure=true -Dmaven.wagon.http.ssl.allowall=true -DskipIntegrationTests=true -e clean deploy -P jenkins-ci "
+                        } else {
+                                bat "mvn -f pom.xml -Dmaven.wagon.http.ssl.insecure=true -Dmaven.wagon.http.ssl.allowall=true -DskipIntegrationTests=true -e clean deploy -P jenkins-ci "
+                        }
+                }
+        }
+}
+        stage (' Post build actions') {
+                step([$class: 'Mailer', notifyEveryUnstableBuild: true, recipients: 'email', sendToIndividuals: false])
+
+        }
+}
+}
+

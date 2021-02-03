@@ -20,7 +20,6 @@ def notifySlack(String buildStatus = 'STARTED') {
 }
 
 timestamps {
-
     node () {
         try{
             tool name: 'Maven3', type: 'maven'

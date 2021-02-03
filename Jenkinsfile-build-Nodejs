@@ -1,5 +1,4 @@
 pipeline {
-
   agent any
     tools {
       nodejs 'NodeJS 12.14.1'

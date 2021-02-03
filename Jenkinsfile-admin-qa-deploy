@@ -1,5 +1,4 @@
 timestamps {
-
 node () {
 
         stage ('admin-qa-deploy - Checkout') {
